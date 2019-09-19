@@ -5,7 +5,6 @@
  */
 package myspecialarray.array;
 
-import java.util.Arrays;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -257,10 +256,6 @@ public class ThreadSafetyArray<T> {
 
 	public T getElement(int index) {
 		return elements[index];
-	}
-
-	public void info() {
-		System.out.println(Arrays.toString(elements));
 	}
 
 	public boolean isLocked() {
