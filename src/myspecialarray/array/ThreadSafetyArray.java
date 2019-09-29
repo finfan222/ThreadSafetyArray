@@ -8,8 +8,6 @@ package myspecialarray.array;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * Guaranty <b>Thread Safety</b>. <b>Do not</b> resize automatically. When new
- * element added, {@code elements} will realculate.<br>
  *
  * @author finfan
  */
@@ -19,31 +17,15 @@ public class ThreadSafetyArray<T> {
 
 	private int size;
 	private T[] elements;
-	private int nextIndex;
-	private final int reserve;
+	private int index;
 
 	/**
 	 * Creates a {@link ThreadSafetyArray} by given {@code <T> Type}.
 	 *
 	 * @param size default size of {@code safety array}
-	 * @param reserve the value which affects on resize method. Defines the
-	 * number of additional cells allocated for new future elements.
 	 */
-	public ThreadSafetyArray(int size, int reserve) {
+	public ThreadSafetyArray(int size) {
 		this.size = size;
-		this.reserve = reserve;
-		this.elements = (T[]) new Object[size];
-	}
-
-	/**
-	 * Doesnt have a nodrmal javadoc.
-	 *
-	 * @deprecated
-	 */
-	@Deprecated
-	public ThreadSafetyArray() {
-		this.size = 10;
-		this.reserve = 10;
 		this.elements = (T[]) new Object[size];
 	}
 
@@ -59,18 +41,15 @@ public class ThreadSafetyArray<T> {
 	 * @return true if element successfull added to array, false otherwise.
 	 */
 	public boolean add(T element) {
-		if (nextIndex >= size - 1) {
+		if (index >= size - 1) {
 			// dynamical increase
-			resize(size + reserve);
+			resize(size + 1);
 		}
 
 		locker.lock();
 		try {
-			elements[nextIndex] = element;
-			recalc();
+			elements[index++] = element;
 			return true;
-		} catch (RuntimeException e) {
-			return false;
 		} finally {
 			locker.unlock();
 		}
@@ -87,63 +66,33 @@ public class ThreadSafetyArray<T> {
 	 * If all checks is done, lock the {@code elements} and remove the element
 	 * on given index (by setting index pos element to null).
 	 *
-	 * @param index from where remove the element
+	 * @param idx from where remove the element
 	 * @return true if removing is success, false otherwise.
 	 */
-	public boolean remove(int index) {
-		if (index > size - 1) {
+	public boolean remove(int idx) {
+		if (idx > size - 1) {
 			throw new ArrayIndexOutOfBoundsException();
 		}
 
-		if (elements[index] == null) {
+		if (elements[idx] == null) {
 			return false;
 		}
 
 		locker.lock();
 		try {
-			elements[index] = null;
-			recalc();
+			elements[idx] = null;
+			if (idx < index - 1) {
+				for (int i = idx; i < size; i++) {
+					final int next = i + 1;
+					if (next < size) {
+						elements[i] = elements[next];
+					}
+				}
+			}
+			index--;
 			return true;
 		} finally {
 			locker.unlock();
-		}
-	}
-
-	/**
-	 * Clear elements array by setting each element to null.<br>
-	 * Lock <b>ALL elements</b> and start to setting each element to
-	 * {@code null}. Unlock after end of operation. Send debug message if needed
-	 * and if debug mode is true.
-	 */
-	public void clear() {
-		locker.lock();
-		try {
-			for (int i = 0; i < size; i++) {
-				elements[i] = null;
-			}
-		} finally {
-			locker.unlock();
-		}
-	}
-
-	/**
-	 * Reclaculate elements while not searched next free index in elements
-	 * array. This function is hidden (private) cause it must call only in case
-	 * of:
-	 * <ul>
-	 * <li>add new element</li>
-	 * <li>remove the element</li>
-	 * <li>resize {@code ThreadSafetyArray}</li>
-	 * </ul>
-	 * If debug mode is true, you will receive the message about recalculation
-	 * results.
-	 */
-	private void recalc() {
-		for (int i = 0; i < elements.length; i++) {
-			if (elements[i] == null) {
-				nextIndex = i;
-				break;
-			}
 		}
 	}
 
@@ -162,7 +111,6 @@ public class ThreadSafetyArray<T> {
 
 			elements = (T[]) new Object[size];
 			System.arraycopy(temp, 0, elements, 0, size);
-			recalc();
 		} finally {
 			locker.unlock();
 		}
@@ -195,13 +143,12 @@ public class ThreadSafetyArray<T> {
 		return elements;
 	}
 
-	public T getElement(int index) {
-		final T elem = elements[index];
-		if (elem == null) {
-			throw new NullPointerException("Element at index " + index + " is null.");
-		}
-
-		return elem;
+	public T getLastElement() {
+		return elements[index - 2];
+	}
+	
+	public T getElement(int idx) {
+		return elements[idx];
 	}
 
 	public boolean isLocked() {
@@ -212,11 +159,12 @@ public class ThreadSafetyArray<T> {
 	public String toString() {
 		final StringBuilder sb = new StringBuilder();
 		sb.append("Size: ").append(size).append("\n");
-		sb.append("Next free index: ").append(nextIndex).append("\n");
+		sb.append("Next free index: ").append(index).append("\n");
 		sb.append("Elements:\n");
 		for (int i = 0; i < size; i++) {
 			sb.append("[").append(i).append("] ").append(elements[i]).append("\n");
 		}
+		sb.append("Last index: ").append(index);
 		return sb.toString();
 	}
 
