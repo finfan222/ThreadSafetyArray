@@ -17,12 +17,22 @@ public class Main {
 	 * @param args the command line arguments
 	 */
 	public static void main(String[] args) {
-		final ThreadSafetyArray<TestData> safetyArray = new ThreadSafetyArray(150);
+		final ThreadSafetyArray<TestData> safetyArray = new ThreadSafetyArray(3);
 		safetyArray.add(new TestData(25));
 		safetyArray.add(new TestData(192));
 		safetyArray.forceAdd(11231234, new TestData(353));
 		safetyArray.add(new TestData(1029));
+		safetyArray.add(new TestData(123));
+		safetyArray.add(new TestData(123));
+		safetyArray.add(new TestData(123));
+		safetyArray.add(new TestData(123));
+		safetyArray.add(new TestData(123));
+		safetyArray.add(new TestData(123));
+		safetyArray.add(new TestData(123));
 		safetyArray.getElement(0).getValue();
+		safetyArray.add(new TestData(123));
+		safetyArray.add(new TestData(123));
+		safetyArray.add(new TestData(123));
 		System.out.println(safetyArray);
 	}
 

@@ -17,29 +17,18 @@ public class ThreadSafetyArray<T> {
 
 	private final ReentrantLock locker = new ReentrantLock();
 
-	private final boolean debug;
-
 	private int size;
 	private T[] elements;
 	private int nextIndex;
 
-	public ThreadSafetyArray(boolean debug, int size) {
-		this.debug = debug;
-		this.size = size;
-		this.elements = (T[]) new Object[size];
-	}
-
 	public ThreadSafetyArray(int size) {
-		this.debug = false;
 		this.size = size;
 		this.elements = (T[]) new Object[size];
 	}
 
 	public ThreadSafetyArray() {
-		this.debug = false;
-		this.size = 1;
+		this.size = 10;
 		this.elements = (T[]) new Object[size];
-		System.out.println("Warning, elements was created with size 1.");
 	}
 
 	/**
@@ -56,19 +45,14 @@ public class ThreadSafetyArray<T> {
 	 * @return true if element successfull added to array, false otherwise.
 	 */
 	public boolean add(T element) {
-		if (nextIndex > size - 1) {
-			if (debug) {
-				System.err.println("Array is full. IndexBoundOfException.");
-			}
-			return false;
+		if (nextIndex >= size - 1) {
+			// dynamical increase
+			resize(size + 10);
 		}
 
 		locker.lock();
 		try {
 			elements[nextIndex] = element;
-			if (debug) {
-				System.out.println("Element added to index " + nextIndex);
-			}
 			recalc();
 			return true;
 		} finally {
@@ -104,9 +88,6 @@ public class ThreadSafetyArray<T> {
 		locker.lock();
 		try {
 			elements[index] = element;
-			if (debug) {
-				System.out.println("Element force added to index " + index);
-			}
 			if (index == nextIndex) {
 				recalc();
 			}
@@ -129,29 +110,16 @@ public class ThreadSafetyArray<T> {
 	 */
 	public boolean remove(int index) {
 		if (index > size - 1) {
-			if (debug) {
-				System.out.println("Can't remove element from not exist index. Maximum index: " + (size - 1) + ". ArrayIndex bound of exception.");
-			}
-			return false;
+			throw new ArrayIndexOutOfBoundsException();
 		}
 
 		if (elements[index] == null) {
-			if (debug) {
-				System.out.println("Try to remove element in index " + index + ", but nothing to remove. Element is null.");
-			}
 			return false;
 		}
 
 		locker.lock();
 		try {
 			elements[index] = null;
-			if (debug) {
-				System.out.println("Element remvoed from " + index);
-			}
-
-			if (index == nextIndex) {
-				recalc();
-			}
 			recalc();
 			return true;
 		} finally {
@@ -170,10 +138,6 @@ public class ThreadSafetyArray<T> {
 		try {
 			for (int i = 0; i < size; i++) {
 				elements[i] = null;
-			}
-
-			if (debug) {
-				System.out.println("All elements was deleted. Array with size " + size + " is empty now.");
 			}
 		} finally {
 			locker.unlock();
@@ -199,10 +163,6 @@ public class ThreadSafetyArray<T> {
 				break;
 			}
 		}
-
-		if (debug) {
-			System.out.println("Elements recalculated, next free index: " + nextIndex);
-		}
 	}
 
 	public void resize(int newSize) {
@@ -217,11 +177,10 @@ public class ThreadSafetyArray<T> {
 
 				temp[i] = elements[i];
 			}
-			elements = temp;
+			
+			elements = (T[]) new Object[size];
+			System.arraycopy(temp, 0, elements, 0, size);
 			recalc();
-			if (debug) {
-				System.out.println("Array was resized. New size: " + size);
-			}
 		} finally {
 			locker.unlock();
 		}
