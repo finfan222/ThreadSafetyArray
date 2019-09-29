@@ -22,12 +22,25 @@ public class ThreadSafetyArray<T> {
 	private int nextIndex;
 	private final int reserve;
 
+	/**
+	 * Creates a {@link ThreadSafetyArray} by given {@code <T> Type}.
+	 *
+	 * @param size default size of {@code safety array}
+	 * @param reserve the value which affects on resize method. Defines the
+	 * number of additional cells allocated for new future elements.
+	 */
 	public ThreadSafetyArray(int size, int reserve) {
 		this.size = size;
 		this.reserve = reserve;
 		this.elements = (T[]) new Object[size];
 	}
 
+	/**
+	 * Doesnt have a nodrmal javadoc.
+	 *
+	 * @deprecated
+	 */
+	@Deprecated
 	public ThreadSafetyArray() {
 		this.size = 10;
 		this.reserve = 10;
