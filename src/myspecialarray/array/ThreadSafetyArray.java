@@ -20,26 +20,27 @@ public class ThreadSafetyArray<T> {
 	private int size;
 	private T[] elements;
 	private int nextIndex;
+	private final int reserve;
 
-	public ThreadSafetyArray(int size) {
+	public ThreadSafetyArray(int size, int reserve) {
 		this.size = size;
+		this.reserve = reserve;
 		this.elements = (T[]) new Object[size];
 	}
 
 	public ThreadSafetyArray() {
 		this.size = 10;
+		this.reserve = 10;
 		this.elements = (T[]) new Object[size];
 	}
 
 	/**
 	 * Insert the element to an array in next free space. Before element will be
-	 * inserted the array will be locked, the lock will be released after
-	 * element inserted successfuly.<br>
-	 * <ul>
-	 * <li>If givable index is more than current array size, the index
-	 * automatically setted to LAST (size - 1)</li>
-	 * <li>If givable index is less than 0, index automatically sets to 0.</li>
-	 * </ul>
+	 * inserted, check the {@code nextIndex}. If {@code nextIndex} is more or
+	 * equals to {@code size - 1}, array will resized automatically on a given
+	 * {@code reserve} value.<br>
+	 * If index check is ok, element will add to {@code elements} and array will
+	 * be locked (and unlocked after success adding of element).<br>
 	 *
 	 * @param element new element ins
 	 * @return true if element successfull added to array, false otherwise.
@@ -47,7 +48,7 @@ public class ThreadSafetyArray<T> {
 	public boolean add(T element) {
 		if (nextIndex >= size - 1) {
 			// dynamical increase
-			resize(size + 10);
+			resize(size + reserve);
 		}
 
 		locker.lock();
@@ -55,42 +56,8 @@ public class ThreadSafetyArray<T> {
 			elements[nextIndex] = element;
 			recalc();
 			return true;
-		} finally {
-			locker.unlock();
-		}
-	}
-
-	/**
-	 * Forcing insert the element to an array with given index.
-	 * <font color="red">This method ignores the elements in given index, if
-	 * element in given index is exist, he will be rewrighted by new one from
-	 * {@code index} argument.</font><br>
-	 * Before element will be inserted the array will be locked, the lock will
-	 * be released after element inserting and returning the value. After
-	 * inserting <i>nextFreeIndex</i> will be
-	 * <b>recalculated</b> if given index != nextFreeIndex.<br>
-	 * <ul>
-	 * <li>If givable index is more than current array size, the index
-	 * automatically setted to LAST (size - 1)</li>
-	 * <li>If givable index is less than 0, index automatically sets to 0.</li>
-	 * </ul>
-	 *
-	 * @param index given index place
-	 * @param element new element inserted
-	 */
-	public void forceAdd(int index, T element) {
-		if (index > size - 1) {
-			index = size - 1;
-		} else if (index < 0) {
-			index = 0;
-		}
-
-		locker.lock();
-		try {
-			elements[index] = element;
-			if (index == nextIndex) {
-				recalc();
-			}
+		} catch (RuntimeException e) {
+			return false;
 		} finally {
 			locker.unlock();
 		}
@@ -99,11 +66,13 @@ public class ThreadSafetyArray<T> {
 	/**
 	 * Delete element from array by given index.
 	 * <ul>
-	 * <li>If given index > than (size - 1), return false</li>
-	 * <li>If element not exist (null) in given index, return false</li>
+	 * <li>If given index > than {@code size - 1}, throw
+	 * {@link ArrayIndexOutOfBoundsException}</li>
+	 * <li>If element not exist (null) in given index then return
+	 * {@code false}</li>
 	 * </ul>
 	 * If all checks is done, lock the {@code elements} and remove the element
-	 * on given index (by setting to NULL).
+	 * on given index (by setting index pos element to null).
 	 *
 	 * @param index from where remove the element
 	 * @return true if removing is success, false otherwise.
@@ -177,7 +146,7 @@ public class ThreadSafetyArray<T> {
 
 				temp[i] = elements[i];
 			}
-			
+
 			elements = (T[]) new Object[size];
 			System.arraycopy(temp, 0, elements, 0, size);
 			recalc();
@@ -214,7 +183,12 @@ public class ThreadSafetyArray<T> {
 	}
 
 	public T getElement(int index) {
-		return elements[index];
+		final T elem = elements[index];
+		if (elem == null) {
+			throw new NullPointerException("Element at index " + index + " is null.");
+		}
+
+		return elem;
 	}
 
 	public boolean isLocked() {
@@ -227,14 +201,10 @@ public class ThreadSafetyArray<T> {
 		sb.append("Size: ").append(size).append("\n");
 		sb.append("Next free index: ").append(nextIndex).append("\n");
 		sb.append("Elements:\n");
-		for(int i = 0; i < size ;i++) {
-			if(elements[i] == null) {
-				continue;
-			}
+		for (int i = 0; i < size; i++) {
 			sb.append("[").append(i).append("] ").append(elements[i]).append("\n");
 		}
 		return sb.toString();
 	}
-	
-	
+
 }
