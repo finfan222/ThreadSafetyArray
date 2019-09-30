@@ -34,6 +34,11 @@ public class Main {
 		safetyArray.add(new TestData(123));
 		safetyArray.add(new TestData(123));
 		safetyArray.add(new TestData(123));
+		safetyArray.add(new TestData(123));
+		safetyArray.add(new TestData(123));
+		safetyArray.add(new TestData(123));
+		safetyArray.add(new TestData(123));
+		safetyArray.add(new TestData(123));
 		System.out.println(safetyArray);
 	}
 

@@ -43,7 +43,7 @@ public class ThreadSafetyArray<T> {
 	public boolean add(T element) {
 		if (index >= size - 1) {
 			// dynamical increase
-			resize(size + 1);
+			resize(size * 3 / 2);
 		}
 
 		locker.lock();
@@ -144,7 +144,7 @@ public class ThreadSafetyArray<T> {
 	}
 
 	public T getLastElement() {
-		return elements[index - 2];
+		return elements[index - 1];
 	}
 	
 	public T getElement(int idx) {
