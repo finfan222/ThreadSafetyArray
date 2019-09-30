@@ -5,6 +5,7 @@
  */
 package myspecialarray.array;
 
+import java.util.Arrays;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -70,29 +71,30 @@ public class ThreadSafetyArray<T> {
 	 * @return true if removing is success, false otherwise.
 	 */
 	public boolean remove(int idx) {
-		if (idx > size - 1) {
-			throw new ArrayIndexOutOfBoundsException();
-		}
+		if (idx < size) {
+			if (elements[idx] == null) {
+				return false;
+			}
 
-		if (elements[idx] == null) {
-			return false;
-		}
-
-		locker.lock();
-		try {
-			elements[idx] = null;
-			if (idx < index - 1) {
-				for (int i = idx; i < size; i++) {
-					final int next = i + 1;
-					if (next < size) {
-						elements[i] = elements[next];
+			locker.lock();
+			try {
+				elements[idx] = null;
+				if (idx < index - 1) {
+					for (int i = idx; i < size; i++) {
+						final int next = i + 1;
+						if (next < size) {
+							elements[i] = elements[next];
+						}
 					}
 				}
+				index--;
+				return true;
+			} finally {
+				locker.unlock();
 			}
-			index--;
-			return true;
-		} finally {
-			locker.unlock();
+
+		} else {
+			throw new ArrayIndexOutOfBoundsException();
 		}
 	}
 
@@ -102,11 +104,11 @@ public class ThreadSafetyArray<T> {
 			this.size = newSize;
 			final T[] temp = (T[]) new Object[size];
 			for (int i = 0; i < elements.length; i++) {
-				if (i > temp.length - 1) {
+				if (i < temp.length) {
+					temp[i] = elements[i];
+				} else {
 					break;
 				}
-
-				temp[i] = elements[i];
 			}
 
 			elements = (T[]) new Object[size];
@@ -146,13 +148,13 @@ public class ThreadSafetyArray<T> {
 	public T getLastElement() {
 		return elements[index - 1];
 	}
-	
-	public T getElement(int idx) {
-		return elements[idx];
-	}
 
-	public boolean isLocked() {
-		return locker.isLocked();
+	public T getElement(int idx) {
+		if (idx < size) {
+			return elements[idx];
+		} else {
+			throw new ArrayIndexOutOfBoundsException();
+		}
 	}
 
 	@Override
@@ -160,10 +162,7 @@ public class ThreadSafetyArray<T> {
 		final StringBuilder sb = new StringBuilder();
 		sb.append("Size: ").append(size).append("\n");
 		sb.append("Next free index: ").append(index).append("\n");
-		sb.append("Elements:\n");
-		for (int i = 0; i < size; i++) {
-			sb.append("[").append(i).append("] ").append(elements[i]).append("\n");
-		}
+		sb.append("Elements: ").append(Arrays.toString(elements)).append("\n");
 		sb.append("Last index: ").append(index);
 		return sb.toString();
 	}
